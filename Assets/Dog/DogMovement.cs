@@ -5,30 +5,34 @@ using UnityEngine;
 public class DogMovement : MonoBehaviour
 {
 
+    // Behaviour control variables
     public float speed = 1f;
     private float origSpeed = 1f;
     public float minWalk = 0.02f;
+    public float secsToActivation = 6f;
+    public float secsToRegainControlFromSmellingFloor = 3f;
+    [Range(0f, 0.005f)]
+    public float chanceOfSniffingFloor = 0.0005f;
+
+    // References
+    private GameManager gm = null;
     private Animator anim = null;
-    [SerializeField]
+    public GameObject smellSeq;
+    public Transform draggableTire = null;
+    private Transform draggableTireOriginalParent = null;
+
+    // State info
     private float axis = 0f;
     private bool isRight = true;
     private bool isWalking = false;
     private bool isDragging = false;
     private bool isCurrDirectionRight = true;
-    private GameManager gm = null;
-    private bool approachedTire = false;
-    private float timeToApproachTire = Mathf.Infinity;
-    public float secsToActivation = 6f;
-    public float secsToRegainControlFromSmellingFloor = 3f;
-    public bool hasControl = true;
-    public GameObject smellSeq;
-    public Transform draggableTire = null;
-    private Transform draggableTireOriginalParent = null;
-    [Range(0f, 0.005f)]
-    public float chanceOfSniffingFloor = 0.0005f;
     private bool isSniffingFloor = false;
     private bool inTireScentArea = false;
-
+    private bool hasControl = true;
+    private bool approachedTire = false;
+    private float timeToApproachTire = Mathf.Infinity;
+    
 
     // Start is called before the first frame update
     void Awake()
@@ -52,15 +56,15 @@ public class DogMovement : MonoBehaviour
 
         // Start Interaction. Freezes controls
         if (ShouldApproachTire())
-        {
             ApproachTire();
-        }
+
 
         // Randomly smell floor. Freezes control
-        else if (ShouldStartSniffingFloor()) {
+        else if (ShouldStartSniffingFloor())
             StartSniffingFloor();
-        }
 
+
+        // Player controled actions
         else if (hasControl)
         {
             //axis = Input.GetAxisRaw("Horizontal");
@@ -70,23 +74,11 @@ public class DogMovement : MonoBehaviour
             {
                 OnFinishedSniffingFloor();
                 anim.SetTrigger("startWalking");
-                //StopSniffing();
             }
             isWalking = isWalkingCurr;
-            anim.SetBool("isWalking", isWalking);
+            anim.SetBool("isWalking", isWalking); //TODO: shame to re-set this every update
             if (isWalking)
-            {
-                OnFinishedSniffingFloor(); // just in case
-                isCurrDirectionRight = axis > 0;
-                if (isCurrDirectionRight != isRight && !isDragging)
-                {
-                    transform.Rotate(new Vector3(0, 180, 0));
-                    isRight = isCurrDirectionRight;
-                }
-                anim.SetBool("isLeft", !isCurrDirectionRight);
-                Vector3 direction = transform.forward * Mathf.Sign(axis);
-                transform.Translate(direction * speed * Time.deltaTime);
-            }
+                HandleWalk();
         }
     }
 
@@ -113,6 +105,21 @@ public class DogMovement : MonoBehaviour
             StopSniffing();
         }
     }
+
+    // Walk logic
+    private void HandleWalk() {
+        OnFinishedSniffingFloor(); // just in case
+        isCurrDirectionRight = axis > 0;
+        if (isCurrDirectionRight != isRight && !isDragging)
+        {
+            transform.Rotate(new Vector3(0, 180, 0));
+            isRight = isCurrDirectionRight;
+        }
+        anim.SetBool("isLeft", !isCurrDirectionRight);
+        Vector3 direction = transform.forward * Mathf.Sign(axis);
+        transform.Translate(direction * speed * Time.deltaTime);
+    }
+
 
     // If player interrupted or left tire area. 
     private void StopSniffing() {
@@ -164,7 +171,7 @@ public class DogMovement : MonoBehaviour
     public void OnTirePickedUp() {
         isDragging = true;
         anim.SetBool("isDragging", true);
-        speed /= 4;
+        speed = origSpeed / 4;
         if (draggableTire != null) {
             draggableTireOriginalParent = draggableTire.parent;
             draggableTire.parent = transform;
@@ -177,7 +184,7 @@ public class DogMovement : MonoBehaviour
         {
             draggableTire.parent = draggableTireOriginalParent;
             anim.SetBool("isDragging", false);
-            speed *= 4;
+            speed = origSpeed;
         }
     }
 
