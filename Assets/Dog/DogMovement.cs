@@ -6,13 +6,19 @@ public class DogMovement : MonoBehaviour
 {
 
     // Behaviour control variables
+    [Range(0f, 3f)]
     public float speed = 1f;
     private float origSpeed = 1f;
+    [Range(0f, 0.5f)]
     public float minWalk = 0.02f;
+    [Range (0f, 6f)]
     public float secsToActivation = 6f;
+    [Range(0f, 4f)]
     public float secsToRegainControlFromSmellingFloor = 3f;
     [Range(0f, 0.005f)]
     public float chanceOfSniffingFloor = 0.0005f;
+    [Range(0f, 3f)]
+    public float secsToStopForSniffingFloor = 2f;
 
     // References
     private GameManager gm = null;
@@ -58,28 +64,13 @@ public class DogMovement : MonoBehaviour
         if (ShouldApproachTire())
             ApproachTire();
 
-
         // Randomly smell floor. Freezes control
         else if (ShouldStartSniffingFloor())
             StartSniffingFloor();
 
-
         // Player controled actions
         else if (hasControl)
-        {
-            //axis = Input.GetAxisRaw("Horizontal");
-            axis = Input.GetAxis("Horizontal");
-            bool isWalkingCurr = Mathf.Abs(axis) > minWalk;
-            if (isWalkingCurr && !isWalking)
-            {
-                OnFinishedSniffingFloor();
-                anim.SetTrigger("startWalking");
-            }
-            isWalking = isWalkingCurr;
-            anim.SetBool("isWalking", isWalking); //TODO: shame to re-set this every update
-            if (isWalking)
-                HandleWalk();
-        }
+            HandlePlayerInput();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -104,6 +95,22 @@ public class DogMovement : MonoBehaviour
             inTireScentArea = false;
             StopSniffing();
         }
+    }
+
+
+    // Player Ctrl logic
+    private void HandlePlayerInput() {
+        axis = Input.GetAxis("Horizontal");
+        bool isWalkingCurr = Mathf.Abs(axis) > minWalk;
+        if (isWalkingCurr && !isWalking)
+        {
+            OnFinishedSniffingFloor();
+            anim.SetTrigger("startWalking");
+        }
+        isWalking = isWalkingCurr;
+        anim.SetBool("isWalking", isWalking); //TODO: shame to re-set this every update
+        if (isWalking)
+            HandleWalk();
     }
 
     // Walk logic
