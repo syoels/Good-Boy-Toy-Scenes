@@ -214,6 +214,8 @@ public class DogMovement : MonoBehaviour
             draggableTire.parent = draggableTireOriginalParent;
             anim.SetBool("isDragging", false);
             speed = origSpeed;
+            isDragging = false;
+            
         }
     }
 
