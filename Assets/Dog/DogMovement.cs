@@ -6,6 +6,7 @@ public class DogMovement : MonoBehaviour
 {
 
     public float speed = 1f;
+    private float origSpeed = 1f;
     public float minWalk = 0.02f;
     private Animator anim = null;
     [SerializeField]
@@ -18,12 +19,15 @@ public class DogMovement : MonoBehaviour
     private bool approachedTire = false;
     private float timeToApproachTire = Mathf.Infinity;
     public float secsToActivation = 6f;
+    public float secsToRegainControlFromSmellingFloor = 3f;
+    public bool hasControl = true;
     public GameObject smellSeq;
     public Transform draggableTire = null;
     private Transform draggableTireOriginalParent = null;
     [Range(0f, 0.005f)]
     public float chanceOfSniffingFloor = 0.0005f;
     private bool isSniffingFloor = false;
+    private bool inTireScentArea = false;
 
 
     // Start is called before the first frame update
@@ -37,8 +41,7 @@ public class DogMovement : MonoBehaviour
                 this.anim = animator;
             }
         }
-        //this.anim = GetComponentInChildren<Animator>();
-        Debug.Log(anim);
+        origSpeed = speed;
         this.gm = FindObjectOfType<GameManager>();
         
     }
@@ -53,24 +56,27 @@ public class DogMovement : MonoBehaviour
             ApproachTire();
         }
 
-        else if (Random.Range(0f, 1f) <= chanceOfSniffingFloor && !isSniffingFloor) {
+        // Randomly smell floor. Freezes control
+        else if (ShouldStartSniffingFloor()) {
             StartSniffingFloor();
         }
 
-        else if (!isSniffingFloor)
+        else if (hasControl)
         {
             //axis = Input.GetAxisRaw("Horizontal");
             axis = Input.GetAxis("Horizontal");
             bool isWalkingCurr = Mathf.Abs(axis) > minWalk;
             if (isWalkingCurr && !isWalking)
             {
+                OnFinishedSniffingFloor();
                 anim.SetTrigger("startWalking");
                 //StopSniffing();
             }
             isWalking = isWalkingCurr;
-            anim.SetBool("isWalking", isWalking);
+            //anim.SetBool("isWalking", isWalking);
             if (isWalking)
             {
+                OnFinishedSniffingFloor(); // just in case
                 isCurrDirectionRight = axis > 0;
                 if (isCurrDirectionRight != isRight && !isDragging)
                 {
@@ -88,6 +94,7 @@ public class DogMovement : MonoBehaviour
     {
         // Start sniffing
         if (other.tag.Equals("SmellActivate") && !approachedTire) {
+            inTireScentArea = true;
             SetTimeToTire();
             anim.SetBool("isSniffing", true);
         }
@@ -102,10 +109,12 @@ public class DogMovement : MonoBehaviour
     {
         if (other.tag.Equals("SmellActivate"))
         {
+            inTireScentArea = false;
             StopSniffing();
         }
     }
 
+    // If player interrupted or left tire area. 
     private void StopSniffing() {
         ResetTimeToTire();
         anim.SetBool("isSniffing", false);
@@ -123,9 +132,19 @@ public class DogMovement : MonoBehaviour
 
     // Did the plaer wait enough? 
     private bool ShouldApproachTire() {
-        return Time.time >= timeToApproachTire && !approachedTire;
+        return Time.time >= timeToApproachTire && !approachedTire && !isSniffingFloor;
     }
 
+    // Randomly revoke control from player
+    private bool ShouldStartSniffingFloor() {
+        return 
+            Random.Range(0f, 1f) <= chanceOfSniffingFloor // Random smell
+            && !inTireScentArea // Not while in tire scent area
+            && !isSniffingFloor // No self overlaps
+            && !approachedTire; // Only before tire interaction
+    }
+
+    // Activate sequence, go deeper in z space
     private void ApproachTire() {
         approachedTire = true;
         Vector3 moveVector = smellSeq.transform.position - this.transform.position;
@@ -135,6 +154,7 @@ public class DogMovement : MonoBehaviour
         
     }
 
+    // Activate sequence, go deeper in z space
     private void BeginTireSequence() {
         gm.PlaySmellSeq();
         anim.SetBool("isDragging", true);
@@ -161,12 +181,32 @@ public class DogMovement : MonoBehaviour
         }
     }
 
+    // Freeze player control
     private void StartSniffingFloor() {
         anim.SetTrigger("SniffFloor");
+        anim.SetBool("isSniffingFloor", true);
         isSniffingFloor = true;
+        FreezeControl();
     }
 
+    // When player interrupts floor sniffing
     public void OnFinishedSniffingFloor() {
+        anim.SetBool("isSniffingFloor", false);
         isSniffingFloor = false;
     }
+
+    // Re-nable movement after secsToRegainControlFromSmellingFloor
+    private IEnumerator GainControl() {
+        yield return new WaitForSeconds(secsToRegainControlFromSmellingFloor);
+        hasControl = true;
+        
+    }
+
+    // Disable movement for secsToRegainControlFromSmellingFloor secs
+    private void FreezeControl() {
+        hasControl = false;
+        StartCoroutine("GainControl");
+    }
+
+
 }
