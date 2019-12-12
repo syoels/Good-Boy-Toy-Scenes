@@ -73,7 +73,7 @@ public class DogMovement : MonoBehaviour
                 //StopSniffing();
             }
             isWalking = isWalkingCurr;
-            //anim.SetBool("isWalking", isWalking);
+            anim.SetBool("isWalking", isWalking);
             if (isWalking)
             {
                 OnFinishedSniffingFloor(); // just in case
