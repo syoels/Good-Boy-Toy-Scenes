@@ -13,16 +13,20 @@ public class DogMovement : MonoBehaviour
     public float minWalk = 0.02f;
     [Range (0f, 6f)]
     public float secsToActivation = 6f;
-    [Range(0f, 4f)]
+    [Range(0f, 10f)]
     public float secsToRegainControlFromSmellingFloor = 3f;
     [Range(0f, 0.005f)]
     public float chanceOfSniffingFloor = 0.0005f;
-    [Range(0f, 3f)]
+    [Range(0f, 5f)]
     public float secsToStopForSniffingFloor = 2f;
+    private float enterSniffModePcnt = 0f; // [0,1]
+    private const float EPSILON = 0.025f;
 
     // References
     private GameManager gm = null;
     private Animator anim = null;
+    private int sniffLayerIndex = 0;
+    private float currSniffLayerWeight = 0f;
     public GameObject smellSeq;
     public Transform draggableTire = null;
     private Transform draggableTireOriginalParent = null;
@@ -35,6 +39,7 @@ public class DogMovement : MonoBehaviour
     private bool isCurrDirectionRight = true;
     private bool isSniffingFloor = false;
     private bool inTireScentArea = false;
+    private bool isLosingCtrl = false;
     private bool hasControl = true;
     private bool approachedTire = false;
     private float timeToApproachTire = Mathf.Infinity;
@@ -51,6 +56,7 @@ public class DogMovement : MonoBehaviour
                 this.anim = animator;
             }
         }
+        sniffLayerIndex = anim.GetLayerIndex("SniffFloor");
         origSpeed = speed;
         this.gm = FindObjectOfType<GameManager>();
         
@@ -109,13 +115,25 @@ public class DogMovement : MonoBehaviour
         }
         isWalking = isWalkingCurr;
         anim.SetBool("isWalking", isWalking); //TODO: shame to re-set this every update
+
+        if (isLosingCtrl) {
+            speed -= Time.deltaTime * (origSpeed / secsToStopForSniffingFloor);
+            currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
+            anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight + Time.deltaTime / secsToStopForSniffingFloor);
+            if (speed <= EPSILON) {
+                speed = 0;
+                isLosingCtrl = false;
+                hasControl = false;
+            }
+        }
+
         if (isWalking)
             HandleWalk();
     }
 
     // Walk logic
     private void HandleWalk() {
-        OnFinishedSniffingFloor(); // just in case
+        //OnFinishedSniffingFloor(); // just in case
         isCurrDirectionRight = axis > 0;
         if (isCurrDirectionRight != isRight && !isDragging)
         {
@@ -125,8 +143,12 @@ public class DogMovement : MonoBehaviour
         anim.SetBool("isLeft", !isCurrDirectionRight);
         Vector3 direction = transform.forward * Mathf.Sign(axis);
         transform.Translate(direction * speed * Time.deltaTime);
+        if (!isLosingCtrl && hasControl) {
+            anim.SetLayerWeight(sniffLayerIndex, 0f);
+            // currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
+            // anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight + 0.025f);
+        }
     }
-
 
     // If player interrupted or left tire area. 
     private void StopSniffing() {
@@ -197,8 +219,8 @@ public class DogMovement : MonoBehaviour
 
     // Freeze player control
     private void StartSniffingFloor() {
-        anim.SetTrigger("SniffFloor");
         anim.SetBool("isSniffingFloor", true);
+        anim.SetTrigger("SniffFloor");
         isSniffingFloor = true;
         FreezeControl();
     }
@@ -212,13 +234,15 @@ public class DogMovement : MonoBehaviour
     // Re-nable movement after secsToRegainControlFromSmellingFloor
     private IEnumerator GainControl() {
         yield return new WaitForSeconds(secsToRegainControlFromSmellingFloor);
+        isLosingCtrl = false;
         hasControl = true;
-        
+        speed = origSpeed;
     }
 
     // Disable movement for secsToRegainControlFromSmellingFloor secs
     private void FreezeControl() {
-        hasControl = false;
+        //hasControl = false;
+        isLosingCtrl = true;
         StartCoroutine("GainControl");
     }
 
