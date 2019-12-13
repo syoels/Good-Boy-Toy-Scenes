@@ -225,7 +225,7 @@ public class DogMovement : MonoBehaviour
 
     // this will fire once the player droped the tire.
     private void OnTireDropped() {
-        if (draggableTire != null && draggableTireOriginalParent != null)
+        if (draggableTire != null && draggableTireOriginalParent != null && isDragging)
         {
             draggableTire.parent = draggableTireOriginalParent;
             anim.SetBool("isDragging", false);
