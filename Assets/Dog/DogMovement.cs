@@ -108,23 +108,33 @@ public class DogMovement : MonoBehaviour
     private void HandlePlayerInput() {
         axis = Input.GetAxis("Horizontal");
         bool isWalkingCurr = Mathf.Abs(axis) > minWalk;
-        if (isWalkingCurr && !isWalking)
+        if (isWalkingCurr && !isWalking && !isLosingCtrl)
         {
             OnFinishedSniffingFloor();
             anim.SetTrigger("startWalking");
         }
         isWalking = isWalkingCurr;
-        anim.SetBool("isWalking", isWalking); //TODO: shame to re-set this every update
 
-        if (isLosingCtrl) {
+        //TODO: shame to re-set these every update
+        anim.SetBool("isWalking", isWalking); 
+        bool isRegainingCtrl = hasControl && isWalking && speed < origSpeed;
+
+        if (isLosingCtrl)
+        {
             speed -= Time.deltaTime * (origSpeed / secsToStopForSniffingFloor);
             currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
             anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight + Time.deltaTime / secsToStopForSniffingFloor);
-            if (speed <= EPSILON) {
+            if (speed <= EPSILON)
+            {
                 speed = 0;
                 isLosingCtrl = false;
                 hasControl = false;
             }
+        }
+        else if (isRegainingCtrl) {
+            speed = Mathf.Clamp(speed + Time.deltaTime * (origSpeed / secsToStopForSniffingFloor), 0f, origSpeed);
+            currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
+            anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight - Time.deltaTime / secsToStopForSniffingFloor);
         }
 
         if (isWalking)
@@ -140,14 +150,13 @@ public class DogMovement : MonoBehaviour
             transform.Rotate(new Vector3(0, 180, 0));
             isRight = isCurrDirectionRight;
         }
+        if (!isLosingCtrl && speed > 0) {
+            anim.SetBool("isSniffingFloor", false);
+        }
+
         anim.SetBool("isLeft", !isCurrDirectionRight);
         Vector3 direction = transform.forward * Mathf.Sign(axis);
         transform.Translate(direction * speed * Time.deltaTime);
-        if (!isLosingCtrl && hasControl) {
-            anim.SetLayerWeight(sniffLayerIndex, 0f);
-            // currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
-            // anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight + 0.025f);
-        }
     }
 
     // If player interrupted or left tire area. 
@@ -236,9 +245,9 @@ public class DogMovement : MonoBehaviour
     // Re-nable movement after secsToRegainControlFromSmellingFloor
     private IEnumerator GainControl() {
         yield return new WaitForSeconds(secsToRegainControlFromSmellingFloor);
-        isLosingCtrl = false;
-        hasControl = true;
         speed = origSpeed;
+        isLosingCtrl = false;
+        hasControl = true;   
     }
 
     // Disable movement for secsToRegainControlFromSmellingFloor secs
