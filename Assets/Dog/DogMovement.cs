@@ -34,9 +34,9 @@ public class DogMovement : MonoBehaviour
 
     // State info
     private float axis = 0f;
-    private bool isRight = true;
+    public bool isRight = true;
     private bool isWalking = false;
-    private bool isDragging = false;
+    public bool isDragging = false;
     private bool isCurrDirectionRight = true;
     private bool isSniffingFloor = false;
     private bool inTireScentArea = false;
@@ -122,6 +122,7 @@ public class DogMovement : MonoBehaviour
 
         if (isLosingCtrl)
         {
+            // Slow down gradually
             speed -= Time.deltaTime * (origSpeed / secsToStopForSniffingFloor);
             currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
             anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight + Time.deltaTime / secsToStopForSniffingFloor);
@@ -133,6 +134,7 @@ public class DogMovement : MonoBehaviour
             }
         }
         else if (isRegainingCtrl) {
+            // Speed up gradually
             speed = Mathf.Clamp(speed + Time.deltaTime * (origSpeed / secsToStopForSniffingFloor), 0f, origSpeed);
             currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
             anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight - Time.deltaTime / secsToRestartWalkingAfterSniff);
@@ -148,13 +150,18 @@ public class DogMovement : MonoBehaviour
         isCurrDirectionRight = axis > 0;
         if (isCurrDirectionRight != isRight && !isDragging)
         {
-            transform.Rotate(new Vector3(0, 180, 0));
-            isRight = isCurrDirectionRight;
+            //TODO: doesnt work right on tire drag
+            Rotate(180);
         }
-
+        isRight = isCurrDirectionRight;
         anim.SetBool("isLeft", !isCurrDirectionRight);
         Vector3 direction = transform.forward * Mathf.Sign(axis);
         transform.Translate(direction * speed * Time.deltaTime);
+    }
+
+    // put deg=180 to change direction
+    private void Rotate(int deg) {
+        transform.Rotate(new Vector3(0, deg, 0));
     }
 
     // If player interrupted or left tire area. 
@@ -222,7 +229,10 @@ public class DogMovement : MonoBehaviour
             anim.SetBool("isDragging", false);
             speed = origSpeed;
             isDragging = false;
-            
+            if (!isRight)
+            {
+                Rotate(180);
+            }
         }
     }
 
