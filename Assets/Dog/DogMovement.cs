@@ -34,9 +34,9 @@ public class DogMovement : MonoBehaviour
 
     // State info
     private float axis = 0f;
-    public bool isRight = true;
+    private bool isRight = true;
     private bool isWalking = false;
-    public bool isDragging = false;
+    private bool isDragging = false;
     private bool isCurrDirectionRight = true;
     private bool isSniffingFloor = false;
     private bool inTireScentArea = false;
