@@ -207,12 +207,14 @@ public class DogMovement : MonoBehaviour
     // Activate sequence, go deeper in z space
     private void BeginTireSequence() {
         gm.PlaySmellSeq();
+        hasControl = false;
         anim.SetBool("isDragging", true);
     }
 
     // This will fire by the gm once the sequence is over
     public void OnTirePickedUp() {
         isDragging = true;
+        hasControl = true;
         anim.SetBool("isDragging", true);
         speed = origSpeed / 4;
         if (draggableTire != null) {
@@ -229,10 +231,7 @@ public class DogMovement : MonoBehaviour
             anim.SetBool("isDragging", false);
             speed = origSpeed;
             isDragging = false;
-            if (!isRight)
-            {
-                Rotate(180);
-            }
+            Rotate(180); //TODO: this works but it's strange that loup cnahges direction right after letting go of the tire
         }
     }
 
