@@ -19,6 +19,7 @@ public class DogMovement : MonoBehaviour
     public float chanceOfSniffingFloor = 0.0005f;
     [Range(0f, 5f)]
     public float secsToStopForSniffingFloor = 2f;
+    public float secsToRestartWalkingAfterSniff = 1f;
     private float enterSniffModePcnt = 0f; // [0,1]
     private const float EPSILON = 0.025f;
 
@@ -104,7 +105,7 @@ public class DogMovement : MonoBehaviour
     }
 
 
-    // Player Ctrl logic
+    // Player Ctrl logic.. where my ugly code i hiding :(
     private void HandlePlayerInput() {
         axis = Input.GetAxis("Horizontal");
         bool isWalkingCurr = Mathf.Abs(axis) > minWalk;
@@ -117,7 +118,7 @@ public class DogMovement : MonoBehaviour
 
         //TODO: shame to re-set these every update
         anim.SetBool("isWalking", isWalking); 
-        bool isRegainingCtrl = hasControl && isWalking && speed < origSpeed;
+        bool isRegainingCtrl = hasControl && isWalking && (speed < origSpeed || currSniffLayerWeight > 0f);
 
         if (isLosingCtrl)
         {
@@ -134,7 +135,8 @@ public class DogMovement : MonoBehaviour
         else if (isRegainingCtrl) {
             speed = Mathf.Clamp(speed + Time.deltaTime * (origSpeed / secsToStopForSniffingFloor), 0f, origSpeed);
             currSniffLayerWeight = anim.GetLayerWeight(sniffLayerIndex);
-            anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight - Time.deltaTime / secsToStopForSniffingFloor);
+            anim.SetLayerWeight(sniffLayerIndex, currSniffLayerWeight - Time.deltaTime / secsToRestartWalkingAfterSniff);
+            anim.SetBool("isSniffingFloor", false);
         }
 
         if (isWalking)
@@ -143,15 +145,11 @@ public class DogMovement : MonoBehaviour
 
     // Walk logic
     private void HandleWalk() {
-        //OnFinishedSniffingFloor(); // just in case
         isCurrDirectionRight = axis > 0;
         if (isCurrDirectionRight != isRight && !isDragging)
         {
             transform.Rotate(new Vector3(0, 180, 0));
             isRight = isCurrDirectionRight;
-        }
-        if (!isLosingCtrl && speed > 0) {
-            anim.SetBool("isSniffingFloor", false);
         }
 
         anim.SetBool("isLeft", !isCurrDirectionRight);
