@@ -6,6 +6,7 @@ TagManager:
   tags:
   - SmellActivate
   - DropTireSpot
+  - NoFloorSniffArea
   layers:
   - Default
   - TransparentFX
