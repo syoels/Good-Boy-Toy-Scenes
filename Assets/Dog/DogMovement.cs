@@ -41,6 +41,7 @@ public class DogMovement : MonoBehaviour
     private bool isSniffingFloor = false;
     private bool inTireScentArea = false;
     private bool isLosingCtrl = false;
+    private bool inSniffableArea = true;
     private bool hasControl = true;
     private bool approachedTire = false;
     private float timeToApproachTire = Mathf.Infinity;
@@ -83,15 +84,22 @@ public class DogMovement : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Start sniffing
-        if (other.tag.Equals("SmellActivate") && !approachedTire) {
+        if (other.tag.Equals("SmellActivate") && !approachedTire)
+        {
             inTireScentArea = true;
             SetTimeToTire();
             anim.SetBool("isSniffing", true);
         }
 
         //Drop Tire
-        else if (other.tag.Equals("DropTireSpot")) {
+        else if (other.tag.Equals("DropTireSpot"))
+        {
             OnTireDropped();
+        }
+
+        // Disable random sniffing
+        else if (other.tag.Equals("NoFloorSniffArea")) {
+            inSniffableArea = false; 
         }
     }
 
@@ -101,6 +109,12 @@ public class DogMovement : MonoBehaviour
         {
             inTireScentArea = false;
             StopSniffing();
+        }
+
+        // Enable random sniffing
+        else if (other.tag.Equals("NoFloorSniffArea"))
+        {
+            inSniffableArea = true;
         }
     }
 
@@ -189,6 +203,7 @@ public class DogMovement : MonoBehaviour
     private bool ShouldStartSniffingFloor() {
         return 
             Random.Range(0f, 1f) <= chanceOfSniffingFloor // Random smell
+            && inSniffableArea  // Not too close to tire scent area
             && !inTireScentArea // Not while in tire scent area
             && !isSniffingFloor // No self overlaps
             && !approachedTire; // Only before tire interaction
@@ -197,6 +212,7 @@ public class DogMovement : MonoBehaviour
     // Activate sequence, go deeper in z space
     private void ApproachTire() {
         approachedTire = true;
+        hasControl = false;
         Vector3 moveVector = smellSeq.transform.position - this.transform.position;
         if (!isRight)
             iTween.RotateBy(gameObject, iTween.Hash("y", .5, "easeType", "easeInOutBack", "delay", .75));
@@ -207,7 +223,6 @@ public class DogMovement : MonoBehaviour
     // Activate sequence, go deeper in z space
     private void BeginTireSequence() {
         gm.PlaySmellSeq();
-        hasControl = false;
         anim.SetBool("isDragging", true);
     }
 
