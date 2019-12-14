@@ -6,6 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/DogSmellScene.unity
+    path: Assets/Scenes/02_DogSmellScene.unity
     guid: 3d40916cac7b0614e951c4728a13af49
   m_configObjects: {}
